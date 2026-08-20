@@ -1,17 +1,18 @@
-# Build from the income/ directory, NOT from x402-gold-api/ alone:
-#   docker build -f x402-gold-api/Dockerfile -t x402-gold-api income/
+# Build from THIS directory (repo root) -- standard for Render/Fly.io,
+# which build from the repo root by default:
+#   docker build -t x402-gold-api .
 #
-# Why: x402api/cot_source.py reuses income/apify-cot-analytics/src/ as a
-# sibling package at a fixed relative path (../../apify-cot-analytics/src
-# from x402api/), so both directories must be in the build context together.
-# See x402api/cot_source.py's module docstring for the reuse mechanism.
+# x402api/cot_source.py loads apify-cot-analytics/src/ (vendored into this
+# repo, see that module's docstring for why -- this used to be a sibling of
+# income/x402-gold-api/ in the private monorepo; now it ships as a vendored
+# copy inside this public repo so the build has no dependency outside it).
 
 FROM python:3.12-slim
 
 WORKDIR /app
+
 COPY apify-cot-analytics/src ./apify-cot-analytics/src
-COPY x402-gold-api ./x402-gold-api
-WORKDIR /app/x402-gold-api
+COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 

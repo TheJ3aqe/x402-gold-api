@@ -1,9 +1,19 @@
 """Adapter onto the CFTC data layer that already exists in this repo.
 
-`income/apify-cot-analytics/src/` holds a tested, dependency-free CFTC client,
+`apify-cot-analytics/src/` holds a tested, dependency-free CFTC client,
 market catalog and analytics engine (59 tests green, verified against live CFTC
 data 2026-08-17). CLAUDE.md says consolidate rather than accrete, so this API
 IMPORTS that layer instead of shipping a second copy that would drift.
+
+VENDORED, NOT SYMLINKED (20.08.2026). This package ships as its own public
+GitHub repo (x402-gold-api), separate from the private jarvis-rhod monorepo
+where the Apify actor also lives (vault-privacy: only this folder is public).
+That means the old `../../apify-cot-analytics/src` sibling-of-the-parent path
+does not exist once this repo is cloned standalone on Render/Fly -- there is
+no parent income/ directory out there. So a copy of apify-cot-analytics/src
+is vendored into THIS repo at ./apify-cot-analytics/src (one level shallower
+than before) and the path below matches that. If the upstream actor's src/
+changes, re-copy it here -- see README for the sync note.
 
 Loading it needs one trick: the actor's package is literally named `src`, which
 would collide with anything else called `src` on the path, and its modules use
@@ -29,7 +39,7 @@ from pathlib import Path
 from typing import Any
 
 ACTOR_SRC = (
-    Path(__file__).resolve().parent.parent.parent / "apify-cot-analytics" / "src"
+    Path(__file__).resolve().parent.parent / "apify-cot-analytics" / "src"
 )
 ALIAS = "cot_core"
 
@@ -39,15 +49,15 @@ class CotSourceUnavailable(RuntimeError):
 
 
 def _load_cot_core():
-    """Import income/apify-cot-analytics/src as the package `cot_core`."""
+    """Import the vendored apify-cot-analytics/src as the package `cot_core`."""
     if ALIAS in sys.modules:
         return sys.modules[ALIAS]
     init = ACTOR_SRC / "__init__.py"
     if not init.exists():
         raise CotSourceUnavailable(
-            f"Expected the shared CFTC layer at {ACTOR_SRC}, but {init} is missing. "
-            "This API deliberately reuses the Apify actor's data layer rather than "
-            "duplicating it -- both live in income/ and must stay together."
+            f"Expected the vendored CFTC layer at {ACTOR_SRC}, but {init} is "
+            "missing. This API vendors a copy of the Apify actor's data layer "
+            "into ./apify-cot-analytics/src -- re-copy it if it's gone missing."
         )
     spec = importlib.util.spec_from_file_location(
         ALIAS, init, submodule_search_locations=[str(ACTOR_SRC)]

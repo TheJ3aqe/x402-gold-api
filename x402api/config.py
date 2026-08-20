@@ -18,10 +18,22 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Repo root: income/x402-gold-api/x402api/config.py -> up 3 -> jarvis-rhod/
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+# Repo root of the PRIVATE monorepo: income/x402-gold-api/x402api/config.py
+# -> up 3 -> jarvis-rhod/. Only exists when this runs inside that monorepo
+# (Jarvis's own machine). This repo also ships standalone as its own public
+# GitHub repo (x402-gold-api, no jarvis-rhod/common/ around it at all) --
+# there parents[3] doesn't exist, so this must not crash at import time.
+# resolve_pay_to() below already requires X402_PAY_TO as an env var first and
+# only reaches for common.payout as a fallback; REPO_ROOT being None there
+# just means that fallback path raises its own clear error instead of this
+# module failing to import in the first place.
+try:
+    REPO_ROOT = Path(__file__).resolve().parents[3]
+except IndexError:
+    REPO_ROOT = None
+else:
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 
