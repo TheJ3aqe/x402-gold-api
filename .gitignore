@@ -6,6 +6,11 @@ data/
 # Operator price overrides, if any, are environment-specific.
 config/pricing.json
 
+# Secrets — CDP API keys live here locally / as platform secrets on deploy,
+# never in the repo (this is a PUBLIC repo).
+.env
+.env.*
+
 .venv/
 __pycache__/
 *.py[cod]
