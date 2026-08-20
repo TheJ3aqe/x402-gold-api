@@ -1,0 +1,15 @@
+# Runtime dependencies. Kept deliberately small: the CFTC data layer this API
+# reuses (income/apify-cot-analytics/src) is pure standard library, so nothing
+# here exists for data access.
+fastapi ~= 0.136
+uvicorn ~= 0.46
+httpx ~= 0.28
+
+# Test-only
+pytest ~= 9.1
+
+# NOT a dependency yet, and deliberately not pinned here:
+#   cdp-sdk   -- only needed to mint the CDP facilitator's JWT for MAINNET
+#                settlement. Base Sepolia uses https://x402.org/facilitator,
+#                which is unauthenticated, so the whole service runs and tests
+#                without it. Install it at go-live: pip install cdp-sdk

@@ -1,0 +1,12 @@
+# The settlement journal is bookkeeping data, not source. It contains payer
+# addresses and transaction hashes and belongs in Kevin's accounting, never in
+# the repo.
+data/
+
+# Operator price overrides, if any, are environment-specific.
+config/pricing.json
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/

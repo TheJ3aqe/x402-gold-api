@@ -1,0 +1,192 @@
+{
+  "_readme": [
+    "Listing metadata for the x402 Bazaar (the CDP facilitator's discovery catalog)",
+    "and for the service's own /.well-known/x402 document.",
+    "",
+    "PRICES ARE NOT IN THIS FILE ON PURPOSE. x402api/pricing.py is the single",
+    "source of truth for what a call costs; manifest.py injects the live price",
+    "into each route when the document is served. A price written here as well",
+    "would be a second copy free to drift from the one that actually charges.",
+    "",
+    "Bazaar indexing requirements, verified 2026-08-19 against the x402 docs:",
+    "  * the service must be reachable over public HTTPS",
+    "  * at least one successful PAID call must have gone through the CDP",
+    "    facilitator (a testnet call does not register the listing)",
+    "  * indexing then takes roughly 10-15 minutes",
+    "So this manifest is complete but the listing cannot appear until the CDP",
+    "key exists and the service is deployed. See README, 'Going live'."
+  ],
+  "service": {
+    "name": "Gold & FX Positioning API",
+    "slug": "gold-fx-positioning",
+    "summary": "Weekly CFTC Commitments-of-Traders positioning for gold, FX majors, metals, energy and indices - scored, ranked and cross-referenced, not dumped.",
+    "description": "Turns the CFTC's weekly Commitments of Traders report into decisions. Every response carries net speculative positioning, week-over-week change, the Williams COT Index (percentile of the net within its own multi-year range), a z-score and an extremity classification. Cross-market routes add what a single-market feed cannot: a stretch ranking, a clustering/dispersion regime read, a single speculative US-dollar score derived from the signed FX contracts, and divergences where crowded positioning has already started to unwind. Data comes from the CFTC's own open-data API, so there is no scraping and no layout drift.",
+    "category": "market-data",
+    "tags": [
+      "gold",
+      "forex",
+      "commodities",
+      "cot",
+      "cftc",
+      "positioning",
+      "sentiment",
+      "market-data",
+      "trading"
+    ],
+    "version": "1.0.0",
+    "documentation": "/",
+    "termsSummary": "Data is sourced from the CFTC public reporting API. Provided as-is for informational purposes; not investment advice.",
+    "upstreamSource": {
+      "name": "CFTC Commitments of Traders",
+      "url": "https://publicreporting.cftc.gov",
+      "license": "US Government public data",
+      "updateCadence": "weekly, Friday 15:30 ET"
+    }
+  },
+  "routes": [
+    {
+      "id": "snapshot",
+      "method": "GET",
+      "path": "/v1/cot/snapshot",
+      "title": "Positioning snapshot for one market",
+      "description": "Latest weekly COT positioning for a single market, fully enriched: net, week-over-week change, COT Index, percentile, z-score, extremity class, flow direction, full trader-group breakdown and the hedger counterposition.",
+      "discoverable": true,
+      "queryParams": {
+        "market": {
+          "type": "string",
+          "required": true,
+          "description": "Symbol, alias or raw 6-character CFTC contract code. Examples: GOLD, XAUUSD, EURUSD, BTC, 088691.",
+          "example": "GOLD"
+        },
+        "report": {
+          "type": "string",
+          "required": false,
+          "enum": ["auto", "legacy", "disaggregated", "tff"],
+          "default": "auto",
+          "description": "CFTC report family. 'auto' picks the one whose trader breakdown is most meaningful for the market (Managed Money for commodities, Leveraged Money for FX and indices)."
+        },
+        "lookbackWeeks": {
+          "type": "integer",
+          "required": false,
+          "default": 156,
+          "minimum": 8,
+          "maximum": 1040,
+          "description": "Window for the COT Index, percentile and z-score. 156 weeks = 3 years."
+        }
+      }
+    },
+    {
+      "id": "history",
+      "method": "GET",
+      "path": "/v1/cot/history",
+      "title": "Enriched weekly history for one market",
+      "description": "Up to 520 weeks of enriched COT records for one market, newest first. Every week is scored using only data available up to that week, so the series is safe to backtest against.",
+      "discoverable": true,
+      "queryParams": {
+        "market": {
+          "type": "string",
+          "required": true,
+          "description": "Symbol, alias or raw CFTC contract code.",
+          "example": "GOLD"
+        },
+        "weeks": {
+          "type": "integer",
+          "required": false,
+          "default": 52,
+          "minimum": 1,
+          "maximum": 520,
+          "description": "How many weekly records to return."
+        },
+        "lookbackWeeks": {
+          "type": "integer",
+          "required": false,
+          "default": 156,
+          "minimum": 8,
+          "maximum": 1040,
+          "description": "Rolling window used to score each week."
+        }
+      }
+    },
+    {
+      "id": "compare",
+      "method": "GET",
+      "path": "/v1/cot/compare",
+      "title": "Cross-market positioning comparison",
+      "description": "Ranks a set of markets by how stretched their positioning is, reports whether the set is clustered or scattered, derives a single speculative US-dollar score from the signed FX contracts, and lists crowded positions that have started unwinding.",
+      "discoverable": true,
+      "queryParams": {
+        "markets": {
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated symbols or a preset name (metals, fx, energy, indices, crypto, rates, ags). Defaults to a gold/FX desk set.",
+          "example": "GOLD,SILVER,EURUSD,DXY"
+        },
+        "lookbackWeeks": {
+          "type": "integer",
+          "required": false,
+          "default": 156,
+          "minimum": 8,
+          "maximum": 1040,
+          "description": "Window for the COT Index of each market."
+        }
+      }
+    },
+    {
+      "id": "extremes",
+      "method": "GET",
+      "path": "/v1/cot/extremes",
+      "title": "Positioning-extreme screener",
+      "description": "Sweeps a whole group - or the full 34-market catalog - and returns only the markets sitting at a positioning extreme, plus the stretched near-misses, the crowding regime and any extremes already unwinding. One call replaces a market-by-market scan.",
+      "discoverable": true,
+      "queryParams": {
+        "group": {
+          "type": "string",
+          "required": false,
+          "enum": ["all", "metals", "fx", "energy", "indices", "crypto", "rates", "ags"],
+          "default": "all",
+          "description": "Which slice of the catalog to sweep."
+        },
+        "lookbackWeeks": {
+          "type": "integer",
+          "required": false,
+          "default": 156,
+          "minimum": 8,
+          "maximum": 1040,
+          "description": "Window for the COT Index of each market."
+        },
+        "extremeLongThreshold": {
+          "type": "number",
+          "required": false,
+          "default": 90,
+          "description": "COT Index at or above which positioning counts as an extreme long."
+        },
+        "extremeShortThreshold": {
+          "type": "number",
+          "required": false,
+          "default": 10,
+          "description": "COT Index at or below which positioning counts as an extreme short."
+        }
+      }
+    }
+  ],
+  "freeRoutes": [
+    {
+      "method": "GET",
+      "path": "/v1/markets",
+      "title": "Market catalog",
+      "description": "Every supported symbol, alias, group and preset. Free so an agent can discover what it can buy before paying for anything."
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "title": "Service health",
+      "description": "Liveness, configured network, and the fee share of each route's price. Free."
+    },
+    {
+      "method": "GET",
+      "path": "/.well-known/x402",
+      "title": "This manifest",
+      "description": "Machine-readable service and route metadata with live prices. Free."
+    }
+  ]
+}

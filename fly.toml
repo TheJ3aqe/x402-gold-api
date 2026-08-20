@@ -1,0 +1,32 @@
+# Fly.io config -- for MAINNET / always-on operation once real paid traffic
+# exists. Cold starts break x402 payment flows (client signs a payment quote
+# with a short validity window, X402_PAYMENT_TIMEOUT_SECONDS default 60s --
+# a sleeping Render free instance can eat that whole window waking up), so
+# this is the "actually taking money" deployment, not the testing one.
+#
+# Usage (needs a Fly.io account -- NOT run autonomously, this is prep only):
+#   fly launch --no-deploy --dockerfile Dockerfile --config fly.toml
+#   fly secrets set X402_PAY_TO=0x... X402_NETWORK=base \
+#     CDP_API_KEY_ID=... CDP_API_KEY_SECRET=...
+#   fly deploy --build-arg CONTEXT=../   # see DEPLOY.md for the context caveat
+#
+# Cost (verified via web research 19.08.2026, not live-tested against a real
+# account): shared-cpu-1x / 256MB run 24/7 is roughly $2/month on Fly's
+# per-VM-second billing -- cheapest true always-on option found. Compare
+# Render Starter ($7/mo flat) and Railway Hobby ($5/mo). See DEPLOY.md.
+
+app = "x402-gold-api"          # placeholder -- `fly launch` will ask to rename
+primary_region = "fra"         # Frankfurt: closest major region to Kevin
+
+[build]
+
+[http_service]
+  internal_port = 8402
+  force_https = true
+  auto_stop_machines = false   # deliberately NOT stopping -- that reintroduces
+  auto_start_machines = true   # the cold-start problem this file exists to avoid
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
